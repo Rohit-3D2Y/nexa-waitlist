@@ -20,25 +20,30 @@ const IconButton = ({ icon }) => (
   </button>
 );
 
-const InputField = ({ icon, type = "text", placeholder }) => (
+const InputField = ({ icon, type = "text", placeholder, name, value, onChange }) => (
   <div className="relative w-full">
     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300">
       {icon}
     </div>
     <input
       type={type}
+      name={name}
       placeholder={placeholder}
+      value={value}
+      onChange={onChange}
       className="w-full px-4 py-3 pl-10 rounded-xl bg-black bg-opacity-40 border border-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
     />
   </div>
 );
 
-const SelectField = ({ icon, options }) => (
+const SelectField = ({ icon, options, name, onChange }) => (
   <div className="relative w-full">
     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300">
       {icon}
     </div>
     <select
+      name={name}
+      onChange={onChange}
       className="w-full px-4 py-3 pl-10 rounded-xl bg-black bg-opacity-80 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
     >
       <option value="">Select Work Type</option>
@@ -51,13 +56,16 @@ const SelectField = ({ icon, options }) => (
   </div>
 );
 
-const TextareaField = ({ icon, placeholder }) => (
+const TextareaField = ({ icon, placeholder, name, value, onChange }) => (
   <div className="relative w-full">
     <div className="absolute left-3 top-4 text-gray-300">
       {icon}
     </div>
     <textarea
       placeholder={placeholder}
+      name={name}
+      value={value}
+      onChange={onChange}
       rows="4"
       className="w-full px-4 py-3 pl-10 rounded-xl bg-black bg-opacity-40 border border-white/20 text-white placeholder-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-orange-400"
     />
@@ -66,6 +74,71 @@ const TextareaField = ({ icon, placeholder }) => (
 
 const Landing = () => {
   const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    company: '',
+    email: '',
+    phone: '',
+    workType: '',
+    deadline: '',
+    budget: '',
+    scope: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const scriptUrl = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
+      
+      // Add timestamp and format data
+      const formDataToSend = {
+        timestamp: new Date().toISOString(),
+        ...formData
+      };
+
+      const response = await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formDataToSend)
+      });
+
+      setShowForm(false);
+      setFormData({
+        name: '',
+        company: '',
+        email: '',
+        phone: '',
+        workType: '',
+        deadline: '',
+        budget: '',
+        scope: '',
+        message: ''
+      });
+      alert('Thank you for your submission!');
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Failed to submit form. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleConnectClick = () => {
     setShowForm(true);
@@ -118,28 +191,37 @@ const Landing = () => {
             </div>
             </>
           ) : (
-            <div className="w-full bg-black bg-opacity-30 backdrop-blur-md border border-white/10 rounded-3xl px-6 py-6 shadow-lg space-y-4">
+            <form onSubmit={handleSubmit} className="w-full bg-black bg-opacity-30 backdrop-blur-md border border-white/10 rounded-3xl px-6 py-6 shadow-lg space-y-4">
               <h2 className="text-2xl font-semibold text-white mb-4">Project Inquiry Form</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField placeholder="Your Name" icon={<User className="w-5 h-5" />} />
-                <InputField placeholder="Company" icon={<Building2 className="w-5 h-5" />} />
-                <InputField type="email" placeholder="Email Address" icon={<Mail className="w-5 h-5" />} />
-                <InputField type="tel" placeholder="Phone Number" icon={<Phone className="w-5 h-5" />} />
-                <SelectField icon={<ClipboardList className="w-5 h-5" />} options={["Website", "Marketing", "App", "Branding", "Content", "Reels", "Other"]} />
-                <InputField type="date" placeholder="Deadline" icon={<Calendar className="w-5 h-5" />} />
-                <InputField type="number" placeholder="Estimated Budget" icon={<DollarSign className="w-5 h-5" />} />
-                <InputField placeholder="Project Scope" icon={<PenTool className="w-5 h-5" />} />
+                <InputField name="name" placeholder="Your Name" icon={<User className="w-5 h-5" />} value={formData.name} onChange={handleInputChange} />
+                <InputField name="company" placeholder="Company" icon={<Building2 className="w-5 h-5" />} value={formData.company} onChange={handleInputChange} />
+                <InputField name="email" type="email" placeholder="Email Address" icon={<Mail className="w-5 h-5" />} value={formData.email} onChange={handleInputChange} />
+                <InputField name="phone" type="tel" placeholder="Phone Number" icon={<Phone className="w-5 h-5" />} value={formData.phone} onChange={handleInputChange} />
+                <SelectField name="workType" icon={<ClipboardList className="w-5 h-5" />} options={["Website", "Marketing", "App", "Branding", "Content", "Reels", "Other"]} onChange={handleInputChange} />
+                <InputField name="deadline" type="date" placeholder="Deadline" icon={<Calendar className="w-5 h-5" />} value={formData.deadline} onChange={handleInputChange} />
+                <InputField name="budget" type="number" placeholder="Estimated Budget" icon={<DollarSign className="w-5 h-5" />} value={formData.budget} onChange={handleInputChange} />
+                <InputField name="scope" placeholder="Project Scope" icon={<PenTool className="w-5 h-5" />} value={formData.scope} onChange={handleInputChange} />
               </div>
-              <TextareaField placeholder="Additional Message" icon={<MessageSquare className="w-5 h-5" />} />
+              <TextareaField name="message" placeholder="Additional Message" icon={<MessageSquare className="w-5 h-5" />} value={formData.message} onChange={handleInputChange} />
+              {error && (
+                <div className="text-red-500 text-sm text-center">
+                  {error}
+                </div>
+              )}
               <div className="flex gap-4 justify-end pt-4">
-                <button onClick={handleCancel} className="px-4 py-2 rounded-full border border-gray-300 text-white hover:bg-gray-800">
+                <button type="button" onClick={handleCancel} className="px-4 py-2 rounded-full border border-gray-300 text-white hover:bg-gray-800">
                   Cancel
                 </button>
-                <button className="px-6 py-2 rounded-full bg-gradient-to-r from-orange-800 to-orange-400 text-white font-semibold hover:scale-105 transition-transform">
-                  Submit
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="px-6 py-2 rounded-full bg-gradient-to-r from-orange-800 to-orange-400 text-white font-semibold hover:scale-105 transition-transform disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
               </div>
-            </div>
+            </form>
           )}
 
           {/* Social Icons */}
